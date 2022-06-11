@@ -1,0 +1,64 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+
+args = getResolvedOptions(sys.argv, ["JOB_NAME"])
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args["JOB_NAME"], args)
+
+# Script generated for node Directors
+Directors_node1654845685092 = glueContext.create_dynamic_frame.from_catalog(
+    database="dataku",
+    table_name="directors_txt",
+    transformation_ctx="Directors_node1654845685092",
+)
+
+# Script generated for node Movies
+Movies_node1654846032333 = glueContext.create_dynamic_frame.from_catalog(
+    database="dataku",
+    table_name="movies_csv",
+    transformation_ctx="Movies_node1654846032333",
+)
+
+# Script generated for node Renamed keys for Join
+RenamedkeysforJoin_node1654846284788 = ApplyMapping.apply(
+    frame=Directors_node1654845685092,
+    mappings=[
+        ("directorid", "long", "`(right) directorid`", "long"),
+        ("directorname", "string", "`(right) directorname`", "string"),
+    ],
+    transformation_ctx="RenamedkeysforJoin_node1654846284788",
+)
+
+# Script generated for node Join
+Join_node1654846071458 = Join.apply(
+    frame1=Movies_node1654846032333,
+    frame2=RenamedkeysforJoin_node1654846284788,
+    keys1=["directorid"],
+    keys2=["`(right) directorid`"],
+    transformation_ctx="Join_node1654846071458",
+)
+
+# Script generated for node Drop Fields
+DropFields_node1654846708164 = DropFields.apply(
+    frame=Join_node1654846071458,
+    paths=["`(right) directorid`"],
+    transformation_ctx="DropFields_node1654846708164",
+)
+
+# Script generated for node Amazon S3
+AmazonS3_node1654846737070 = glueContext.write_dynamic_frame.from_options(
+    frame=DropFields_node1654846708164,
+    connection_type="s3",
+    format="csv",
+    connection_options={"path": "s3://bucket4datalake/script/", "partitionKeys": []},
+    transformation_ctx="AmazonS3_node1654846737070",
+)
+
+job.commit()
